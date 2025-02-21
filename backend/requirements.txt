@@ -1,6 +1,6 @@
-fastapi
-uvicorn
-instagrapi
-yt-dlp
+fastapi==0.115.8
+uvicorn==0.34.0
+instagrapi==2.1.3
+yt-dlp==2024.10.22
 moviepy==2.1.2
-python-dotenv
+python-dotenv==1.0.1
