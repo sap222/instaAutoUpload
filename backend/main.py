@@ -1,4 +1,6 @@
 import moviepy.editor as mp
+import moviepy.config as mp_config
+mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
 print("MoviePy is working!")
 
 import yt_dlp
@@ -12,12 +14,8 @@ from instagrapi import Client
 from typing import List
 from queue import Queue
 
-# ✅ FFmpeg Path (Adjust as Needed)
-FFMPEG_PATH = "D:\\ffmpeg-7.1-essentials_build\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe"
-os.environ["PATH"] += os.pathsep + os.path.dirname(FFMPEG_PATH)
-
 # ✅ Configuration
-TEMP_FOLDER = "D:\\temp_videos\\"
+TEMP_FOLDER = "./temp_videos/"  # Relative path for Render
 USERNAME = "mehmoood_safdar"
 PASSWORD = "facebook1032"
 DEFAULT_CAPTION = "#ai "
@@ -113,3 +111,8 @@ def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
         print("❌ ERROR:", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error: {e}")
+
+# Optional: Health check endpoint
+@app.get("/")
+def health_check():
+    return {"status": "healthy", "message": "API is running!"}
