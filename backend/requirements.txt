@@ -2,5 +2,5 @@ fastapi
 uvicorn
 instagrapi
 yt-dlp
-moviepy
+moviepy==2.1.2
 python-dotenv
