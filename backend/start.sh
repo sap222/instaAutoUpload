@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Install ffmpeg as root
-sudo apt-get update
-sudo apt-get install -y ffmpeg
+# Install ffmpeg if needed, but Render may already have it
+apt-get update
+apt-get install -y ffmpeg
 
 # Set up the Python environment
 python -m venv .venv
