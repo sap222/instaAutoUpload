@@ -7,8 +7,5 @@ python -m venv .venv
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Manually install moviepy if it's still not working
-pip install moviepy
-
 # Start the application with uvicorn
 uvicorn main:app --host 0.0.0.0 --port 10000
