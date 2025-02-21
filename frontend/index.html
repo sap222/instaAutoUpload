@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Video Downloader</title>
+</head>
+<body>
+    <h2>Enter Instagram Video Link</h2>
+    <form id="videoForm">
+        <input type="text" id="videoLink" placeholder="Enter Instagram video link" required>
+        <button type="submit">Download & Upload</button>
+    </form>
+    <p id="responseMessage"></p>
+
+    <script>
+        document.getElementById("videoForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const videoLink = document.getElementById("videoLink").value;
+
+            const response = await fetch("http://127.0.0.1:8000/process_videos/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ instagram_links: [videoLink] })
+            });
+
+            const result = await response.json();
+            document.getElementById("responseMessage").innerText = result.message || "Error processing video";
+        });
+    </script>
+</body>
+</html>
