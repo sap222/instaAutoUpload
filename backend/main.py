@@ -1,68 +1,115 @@
+import moviepy.editor as mp
+print("MoviePy is working!")
+
 import yt_dlp
 import os
 import time
-from fastapi import FastAPI, HTTPException
+import traceback
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from instagrapi import Client
 from typing import List
+from queue import Queue
 
-# Configuration
-TEMP_FOLDER = "/tmp/"  # Temporary storage (free deployment)
+# ✅ FFmpeg Path (Adjust as Needed)
+FFMPEG_PATH = "D:\\ffmpeg-7.1-essentials_build\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe"
+os.environ["PATH"] += os.pathsep + os.path.dirname(FFMPEG_PATH)
+
+# ✅ Configuration
+TEMP_FOLDER = "D:\\temp_videos\\"
 USERNAME = "mehmoood_safdar"
 PASSWORD = "facebook1032"
-DEFAULT_CAPTION = "#ai "  # Use this caption for all uploads
-UPLOAD_DELAY = 120  # 2 minutes delay between uploads to prevent flagging
+DEFAULT_CAPTION = "#ai "
+UPLOAD_DELAY = 300  # ⏳ 5-minute (300 seconds) delay
 
-# FastAPI App
+# ✅ Initialize FastAPI
 app = FastAPI()
 
-# Enable CORS
+# ✅ Enable CORS for Frontend Requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to specific origins in production
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Instagram Login
+# ✅ Instagram Login
 cl = Client()
 cl.login(USERNAME, PASSWORD)
 
+# ✅ Video Request Model
 class VideoRequest(BaseModel):
-    instagram_links: List[str]  # Accept multiple links
+    instagram_links: List[str]
+
+# ✅ Queue for Videos
+video_queue = Queue()
 
 def download_instagram_video(video_url):
     """Downloads an Instagram video to a temporary folder."""
     ydl_opts = {
-        'outtmpl': f'{TEMP_FOLDER}%(title)s.%(ext)s',
+        'outtmpl': os.path.join(TEMP_FOLDER, '%(id)s.%(ext)s'),
         'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=True)
-        video_path = ydl.prepare_filename(info)
+        video_path = ydl.prepare_filename(info).replace(".webm", ".mp4")
     
+    if not os.path.exists(video_path):
+        raise FileNotFoundError("Download failed, video not found!")
+
     return video_path
 
 def upload_to_instagram(video_path):
-    """Uploads the downloaded video to Instagram and deletes it after upload."""
+    """Uploads the video to Instagram and deletes it after upload."""
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"File {video_path} not found for upload!")
+    
     cl.video_upload(video_path, DEFAULT_CAPTION)
-    print(f"Uploaded: {video_path}")
-    os.remove(video_path)  # Delete video after upload
+    print(f"✅ Uploaded: {video_path}")
+
+    os.remove(video_path)
+    print(f"🗑 Deleted: {video_path}")
+
+def process_queue():
+    """Processes videos from the queue one by one with a delay."""
+    while not video_queue.empty():
+        try:
+            video_url = video_queue.get()
+            print(f"🎬 Processing: {video_url}")
+
+            video_path = download_instagram_video(video_url)
+            print(f"✅ Downloaded: {video_path}")
+
+            upload_to_instagram(video_path)
+            print(f"✅ Uploaded Successfully: {video_path}")
+
+            print(f"⏳ Waiting {UPLOAD_DELAY} seconds before next upload...")
+            time.sleep(UPLOAD_DELAY)
+
+        except Exception as e:
+            print("❌ ERROR:", e)
+            traceback.print_exc()
 
 @app.post("/process_videos/")
-def process_videos(request: VideoRequest):
-    """API endpoint to process multiple videos with delay."""
+def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
+    """API endpoint to queue and schedule uploads."""
     try:
-        for index, link in enumerate(request.instagram_links):
-            print(f"Processing video {index + 1}/{len(request.instagram_links)}")
-            video_path = download_instagram_video(link)
-            upload_to_instagram(video_path)
-            if index < len(request.instagram_links) - 1:
-                print(f"Waiting {UPLOAD_DELAY} seconds before next upload...")
-                time.sleep(UPLOAD_DELAY)  # Delay between uploads
-        return {"status": "success", "message": "All videos uploaded successfully."}
+        if not os.path.exists(TEMP_FOLDER):
+            os.makedirs(TEMP_FOLDER)
+
+        for link in request.instagram_links:
+            video_queue.put(link)
+
+        # ✅ Run queue processor in the background
+        background_tasks.add_task(process_queue)
+
+        return {"status": "success", "message": f"{len(request.instagram_links)} videos queued for upload."}
+
     except Exception as e:
+        print("❌ ERROR:", e)
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error: {e}")
