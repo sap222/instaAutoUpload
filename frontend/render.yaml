@@ -1,11 +1,1 @@
-services:
-  - type: static
-    name: instagram-reel-uploader-frontend
-    env: static
-    plan: free
-    buildCommand: ""  # No build step needed for static HTML/CSS/JS
-    staticPublishPath: .  # Serve files from the root of the frontend folder
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html  # Serve index.html for all routes
+
