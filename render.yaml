@@ -13,4 +13,4 @@ services:
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port 10000"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.19
+        value: 3.11.9  # Changed from 3.9.19
