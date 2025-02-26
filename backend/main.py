@@ -1,12 +1,15 @@
 import sys
 print("Python version:", sys.version)
 print("sys.path:", sys.path)
-import moviepy.editor as mp
-print("MoviePy is installed!")
+try:
+    import moviepy.editor as mp
+    print("MoviePy is installed at:", mp.__file__)
+except ImportError as e:
+    print("Failed to import moviepy.editor:", e)
 
 import moviepy.config as mp_config
 mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
-print("MoviePy is working!")
+
 
 import yt_dlp
 import os
