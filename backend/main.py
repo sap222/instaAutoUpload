@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import traceback
+import random
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -43,7 +44,10 @@ mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
 TEMP_FOLDER = "./temp_videos/"
 SESSION_FILE = "instagram_session.json"  # Save session locally (update for persistent storage if needed)
 DEFAULT_CAPTION = "#ai "
-UPLOAD_DELAY = 300  # 5-minute delay
+HASHTAGS = ["#automation", "#software", "#saas", "#agency", "#smma", "#highlevel", "#deepseek", 
+            "#china", "#chinese", "#ai", "#learn", "#api", "#makemoney", "#online", "#fyp", 
+            "#course", "#openai", "#chatgpt", "#meta", "#llama", "#opensource", "#aiautomation", 
+            "#aiautomationagency", "#freevalue", "#explorepage", "#instagram", "#trending", "#viral"]
 
 # Initialize FastAPI
 app = FastAPI()
@@ -106,18 +110,25 @@ def download_instagram_video(video_url):
         raise FileNotFoundError("Download failed, video not found!")
     return video_path
 
+def get_random_caption():
+    """Generates a random caption with 10-16 random hashtags."""
+    num_hashtags = random.randint(10, 16)
+    selected_hashtags = random.sample(HASHTAGS, num_hashtags)
+    return " ".join(selected_hashtags)
+
 def upload_to_instagram(video_path):
     """Uploads the video to Instagram and deletes it after upload."""
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"File {video_path} not found for upload!")
     
-    cl.video_upload(video_path, DEFAULT_CAPTION)
-    print(f"✅ Uploaded: {video_path}")
+    caption = get_random_caption()
+    cl.video_upload(video_path, caption)
+    print(f"✅ Uploaded: {video_path} with caption: {caption}")
     os.remove(video_path)
     print(f"🗑 Deleted: {video_path}")
 
 def process_queue():
-    """Processes videos from the queue one by one with a delay."""
+    """Processes videos from the queue one by one with a random delay (40-70 mins)."""
     while not video_queue.empty():
         try:
             video_url = video_queue.get()
@@ -126,8 +137,12 @@ def process_queue():
             print(f"✅ Downloaded: {video_path}")
             upload_to_instagram(video_path)
             print(f"✅ Uploaded Successfully: {video_path}")
-            print(f"⏳ Waiting {UPLOAD_DELAY} seconds before next upload...")
-            time.sleep(UPLOAD_DELAY)
+            
+            # Random delay between 40 and 70 minutes (converted to seconds)
+            delay_minutes = random.uniform(40, 70)
+            delay_seconds = delay_minutes * 60
+            print(f"⏳ Waiting {delay_minutes:.2f} minutes ({delay_seconds:.0f} seconds) before next upload...")
+            time.sleep(delay_seconds)
         except Exception as e:
             print("❌ ERROR:", e)
             traceback.print_exc()
