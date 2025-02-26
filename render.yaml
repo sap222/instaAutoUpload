@@ -3,14 +3,14 @@ services:
     name: instagram-reel-uploader
     env: python
     plan: free
-    buildCommand: ""  # Empty build command to skip apt-get
+    buildCommand: ""
     startCommand: |
       cd backend
       apt-get update && apt-get install -y ffmpeg || echo "FFmpeg install failed, proceeding anyway"
-      python --version
-      python -m pip install --upgrade pip
-      python -m pip install -r requirements.txt
-      python test.py
+      /opt/render/project/src/.venv/bin/python --version
+      /opt/render/project/src/.venv/bin/python -m pip install --upgrade pip
+      /opt/render/project/src/.venv/bin/python -m pip install -r requirements.txt
+      /opt/render/project/src/.venv/bin/python test.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
