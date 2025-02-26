@@ -1,4 +1,8 @@
 import moviepy.editor as mp
+import sys
+print(sys.path)
+import moviepy.editor
+print("MoviePy is installed!")
 import moviepy.config as mp_config
 mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
 print("MoviePy is working!")
