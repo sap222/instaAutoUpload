@@ -6,8 +6,8 @@ services:
     buildCommand: |
       apt-get update && apt-get install -y ffmpeg
       cd backend
-      pip install -r requirements.txt
+      python -m pip install -r requirements.txt
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port 10000"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: 3.9.19
