@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: instagram-reel-uploader
+    env: python
+    plan: free
+    repo: .  # Refers to the root of the repository
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg
+      cd backend
+      pip install -r requirements.txt
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9
