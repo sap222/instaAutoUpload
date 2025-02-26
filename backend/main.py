@@ -2,12 +2,12 @@ import sys
 import os
 import time
 import traceback
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from instagrapi import Client
 import yt_dlp
-from typing import List
+from typing import List, Optional
 from queue import Queue
 
 # Debug MoviePy setup
@@ -85,7 +85,7 @@ class VideoRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-    verification_code: str = None  # Optional 2FA code
+    verification_code: Optional[str] = None  # Optional 2FA code
 
 # Queue for Videos
 video_queue = Queue()
@@ -134,13 +134,19 @@ def process_queue():
 
 # Login Endpoint
 @app.post("/login/")
-def login(request: LoginRequest):
+async def login(request: Request, login_request: LoginRequest):
     try:
-        load_instagram_session(request.username, request.password, request.verification_code)
+        # Log the incoming request payload
+        body = await request.json()
+        print("Received payload:", body)
+        
+        load_instagram_session(login_request.username, login_request.password, login_request.verification_code)
         return {"status": "success", "message": "Logged in successfully!"}
     except HTTPException as e:
         raise e
     except Exception as e:
+        print("❌ ERROR:", e)
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 # Video Processing Endpoint
@@ -151,7 +157,7 @@ def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
             os.makedirs(TEMP_FOLDER)
         
         # Ensure we're logged in
-        if not cl.pk:  # Check if client is authenticated
+        if not cl.user_id:  # Check if client is authenticated
             raise HTTPException(status_code=401, detail="Not logged in. Please log in first.")
         
         for link in request.instagram_links:
