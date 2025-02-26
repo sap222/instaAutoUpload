@@ -3,7 +3,6 @@ services:
     name: instagram-reel-uploader
     env: python
     plan: free
-    repo: .
     buildCommand: |
       apt-get update && apt-get install -y ffmpeg
       cd backend
