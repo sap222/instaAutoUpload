@@ -1,11 +1,24 @@
 import sys
+import os
+
 print("Python version:", sys.version)
 print("sys.path:", sys.path)
+
+moviepy_path = os.path.join(sys.path[-1], 'moviepy')
+if os.path.exists(moviepy_path):
+    print(f"moviepy directory exists at {moviepy_path}")
+else:
+    print("moviepy directory does not exist")
+
 try:
     import moviepy.editor as mp
     print("MoviePy is installed at:", mp.__file__)
 except ImportError as e:
     print("Failed to import moviepy.editor:", e)
+
+
+
+
 
 import moviepy.config as mp_config
 mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
