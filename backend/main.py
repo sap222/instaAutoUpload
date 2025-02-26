@@ -7,14 +7,26 @@ print("sys.path:", sys.path)
 moviepy_path = os.path.join(sys.path[-1], 'moviepy')
 if os.path.exists(moviepy_path):
     print(f"moviepy directory exists at {moviepy_path}")
+    editor_path = os.path.join(moviepy_path, 'editor.py')
+    init_path = os.path.join(moviepy_path, '__init__.py')
+    if os.path.exists(editor_path):
+        print(f"editor.py exists at {editor_path}")
+    else:
+        print("editor.py does not exist in moviepy directory")
+    if os.path.exists(init_path):
+        print("__init__.py exists in moviepy directory")
+    else:
+        print("__init__.py does not exist in moviepy directory")
 else:
     print("moviepy directory does not exist")
 
 try:
     import moviepy.editor as mp
-    print("MoviePy is installed at:", mp.__file__)
+    print("MoviePy imported successfully at:", mp.__file__)
 except ImportError as e:
     print("Failed to import moviepy.editor:", e)
+
+
 
 
 
