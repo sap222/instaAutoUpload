@@ -6,11 +6,11 @@ services:
     buildCommand: |
       apt-get update && apt-get install -y ffmpeg
       cd backend
-      ls -la  # List files to confirm requirements.txt is present
-      python --version  # Confirm Python version
-      python -m pip install --upgrade pip  # Ensure pip is current
-      python -m pip install -r requirements.txt -v  # Verbose output
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port 10000"
+      ls -la
+      python --version
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt -v
+    startCommand: "cd backend && python test.py"  # Changed temporarily
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9  # Changed from 3.9.19
+        value: 3.11.9
