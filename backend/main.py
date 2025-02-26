@@ -49,8 +49,8 @@ from queue import Queue
 
 # ✅ Configuration
 TEMP_FOLDER = "./temp_videos/"  # Relative path for Render
-USERNAME = "ai.sourcess"
-PASSWORD = "facebook1001"
+USERNAME = "mehmoood_safdar"
+PASSWORD = "facebook1032"
 DEFAULT_CAPTION = "#ai "
 UPLOAD_DELAY = 300  # ⏳ 5-minute (300 seconds) delay
 
