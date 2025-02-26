@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginSection = document.getElementById("loginSection");
     const uploadSection = document.getElementById("uploadSection");
 
+    const BACKEND_URL = "https://instagram-reel-uploader.onrender.com";
+
     // Login function
     window.submitLogin = function() {
         const username = document.getElementById("username").value.trim();
@@ -19,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loginResponse.innerText = "Logging in...";
 
-        fetch("/login/", {
+        fetch(`${BACKEND_URL}/login/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password, verification_code: verificationCode })
@@ -48,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         uploadResponse.innerText = "Processing...";
 
-        fetch("/process_videos/", {
+        fetch(`${BACKEND_URL}/process_videos/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ instagram_links: links })
