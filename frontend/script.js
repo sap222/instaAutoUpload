@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loginResponse.innerText = "Logging in...";
 
-        fetch("http://127.0.0.1:8000/login/", {
+        fetch("/login/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password, verification_code: verificationCode })
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         uploadResponse.innerText = "Processing...";
 
-        fetch("http://127.0.0.1:8000/process_videos/", {
+        fetch("/process_videos/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ instagram_links: links })
