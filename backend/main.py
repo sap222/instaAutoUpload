@@ -19,6 +19,7 @@ HASHTAGS = [
     "#memes", "#instagood", "#instadaily", "#trendingreels", "#trend", "#instalike",
     "#dailymemes", "#tech", "#trump"
 ]
+
 # Initialize FastAPI app
 app = FastAPI()
 
@@ -64,7 +65,7 @@ def load_instagram_session(username: str, password: str = None, verification_cod
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Login failed: {str(e)}")
 
-# Download function from Code 1
+# Download function
 def download_video(video_url):
     """Downloads a video from various platforms to a temporary folder with retries."""
     print(f"🎬 Attempting to download: {video_url}")
@@ -94,14 +95,14 @@ def download_video(video_url):
             if attempt == 2:
                 raise FileNotFoundError(f"❌ Failed to download {video_url} after 3 attempts: {e}")
 
-# Caption generation from Code 2
+# Caption generation
 def get_random_caption():
     """Generates a random caption with 10-16 random hashtags."""
-    num_hashtags = random.randint(10, 16)
+    num_hashtags = random.randint(15, 19)
     selected_hashtags = random.sample(HASHTAGS, num_hashtags)
     return " ".join(selected_hashtags)
 
-# Upload function from Code 2
+# Upload function
 def upload_to_instagram(video_path):
     """Uploads the video to Instagram and deletes it after upload."""
     if not os.path.exists(video_path):
@@ -113,7 +114,7 @@ def upload_to_instagram(video_path):
     os.remove(video_path)
     print(f"🗑 Deleted: {video_path}")
 
-# Queue processing with delay from Code 2
+# Queue processing with delay
 def process_queue():
     """Processes videos from the queue one by one with a random delay (40-70 mins)."""
     while not video_queue.empty():
@@ -124,8 +125,8 @@ def process_queue():
             upload_to_instagram(video_path)
             print(f"✔️ Completed: {video_path}")
             
-            # Random delay between 40 and 70 minutes (converted to seconds), as in Code 2
-            delay_minutes = random.uniform(40, 70)
+            # Random delay between 40 and 70 minutes (converted to seconds)
+            delay_minutes = random.uniform(60, 120)
             delay_seconds = delay_minutes * 60
             print(f"⏳ Waiting {delay_minutes:.2f} minutes ({delay_seconds:.0f} seconds) before next upload...")
             time.sleep(delay_seconds)
@@ -134,7 +135,7 @@ def process_queue():
             traceback.print_exc()
             continue
 
-# Login endpoint from Code 2
+# Login endpoint
 @app.post("/login/")
 async def login(login_request: LoginRequest):
     """Log in to Instagram."""
@@ -148,7 +149,7 @@ async def login(login_request: LoginRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-# Video processing endpoint adapted from both codes
+# Video processing endpoint
 @app.post("/process_videos/")
 async def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
     """Queue video links for download and upload."""
@@ -175,11 +176,11 @@ async def process_videos(request: VideoRequest, background_tasks: BackgroundTask
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Server Error: {e}")
 
-# Health check endpoint from both codes
-@app.get("/")
-def health_check():
-    """Check if the API is running."""
-    return {"status": "healthy", "message": "API is running!"}
+# Health check endpoint for external pinging
+@app.get("/health")
+async def health_check():
+    """Check if the API is running for external pinging."""
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
     import uvicorn
