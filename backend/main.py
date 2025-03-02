@@ -1,9 +1,8 @@
-import sys
 import os
 import time
 import traceback
 import random
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from instagrapi import Client
@@ -11,45 +10,16 @@ import yt_dlp
 from typing import List, Optional
 from queue import Queue
 
-# Debug MoviePy setup
-print("Python version:", sys.version)
-print("sys.path:", sys.path)
-
-moviepy_path = os.path.join(sys.path[-1], 'moviepy')
-if os.path.exists(moviepy_path):
-    print(f"moviepy directory exists at {moviepy_path}")
-    editor_path = os.path.join(moviepy_path, 'editor.py')
-    init_path = os.path.join(moviepy_path, '__init__.py')
-    if os.path.exists(editor_path):
-        print(f"editor.py exists at {editor_path}")
-    else:
-        print("editor.py does not exist in moviepy directory")
-    if os.path.exists(init_path):
-        print("__init__.py exists in moviepy directory")
-    else:
-        print("__init__.py does not exist in moviepy directory")
-else:
-    print("moviepy directory does not exist")
-
-try:
-    import moviepy.editor as mp
-    print("MoviePy imported successfully at:", mp.__file__)
-except ImportError as e:
-    print("Failed to import moviepy.editor:", e)
-
-import moviepy.config as mp_config
-mp_config.FFMPEG_BINARY = "ffmpeg"  # Use system-installed FFmpeg
-
 # Configuration
-TEMP_FOLDER = "./temp_videos/"
-SESSION_FILE = "instagram_session.json"  # Save session locally (update for persistent storage if needed)
-DEFAULT_CAPTION = "#ai "
-HASHTAGS = ["#automation", "#software", "#saas", "#agency", "#smma", "#highlevel", "#deepseek", 
-            "#china", "#chinese", "#ai", "#learn", "#api", "#makemoney", "#online", "#fyp", 
-            "#course", "#openai", "#chatgpt", "#meta", "#llama", "#opensource", "#aiautomation", 
-            "#aiautomationagency", "#freevalue", "#explorepage", "#instagram", "#trending", "#viral"]
-
-# Initialize FastAPI
+TEMP_FOLDER = "./temp_videos/"  # Where downloaded videos are stored temporarily
+SESSION_FILE = "instagram_session.json"  # File to save Instagram session
+HASHTAGS = [
+    "#automation", "#software", "#saas", "#agency", "#smma", "#highlevel", "#deepseek",
+    "#aiautomationagency", "#freevalue", "#explorepage", "#instagram", "#trending", "#viral",
+    "#memes", "#instagood", "#instadaily", "#trendingreels", "#trend", "#instalike",
+    "#dailymemes", "#tech", "#trump"
+]
+# Initialize FastAPI app
 app = FastAPI()
 
 # Enable CORS for frontend requests
@@ -61,11 +31,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Instagram Client
+# Initialize Instagram client
 cl = Client()
 
-# Load or initialize Instagram session
+# Models for API requests
+class VideoRequest(BaseModel):
+    video_links: List[str]  # Changed from instagram_links to video_links for generality
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    verification_code: Optional[str] = None  # Optional 2FA code
+
+# Queue for video processing
+video_queue = Queue()
+
+# Instagram session management
 def load_instagram_session(username: str, password: str = None, verification_code: str = None):
+    """Load or create an Instagram session."""
     global cl
     try:
         if os.path.exists(SESSION_FILE):
@@ -81,41 +64,44 @@ def load_instagram_session(username: str, password: str = None, verification_cod
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Login failed: {str(e)}")
 
-# Video Request Model
-class VideoRequest(BaseModel):
-    instagram_links: List[str]
-
-# Login Request Model
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-    verification_code: Optional[str] = None  # Optional 2FA code
-
-# Queue for Videos
-video_queue = Queue()
-
-def download_instagram_video(video_url):
-    """Downloads an Instagram video to a temporary folder."""
+# Download function from Code 1
+def download_video(video_url):
+    """Downloads a video from various platforms to a temporary folder with retries."""
+    print(f"🎬 Attempting to download: {video_url}")
     ydl_opts = {
         'outtmpl': os.path.join(TEMP_FOLDER, '%(id)s.%(ext)s'),
         'format': 'bestvideo+bestaudio/best',
         'merge_output_format': 'mp4',
+        'retries': 3,
+        'noplaylist': True,
+        'quiet': False,
     }
     
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        video_path = ydl.prepare_filename(info).replace(".webm", ".mp4")
-    
-    if not os.path.exists(video_path):
-        raise FileNotFoundError("Download failed, video not found!")
-    return video_path
+    for attempt in range(3):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(video_url, download=True)
+                video_path = ydl.prepare_filename(info).replace(".webm", ".mp4")
+            
+            if not os.path.exists(video_path):
+                raise FileNotFoundError("Download failed, video not found!")
+            
+            print(f"✅ Downloaded successfully: {video_path}")
+            return video_path
+        except Exception as e:
+            print(f"⚠️ Download attempt {attempt + 1} failed for {video_url}: {e}")
+            time.sleep(2)
+            if attempt == 2:
+                raise FileNotFoundError(f"❌ Failed to download {video_url} after 3 attempts: {e}")
 
+# Caption generation from Code 2
 def get_random_caption():
     """Generates a random caption with 10-16 random hashtags."""
     num_hashtags = random.randint(10, 16)
     selected_hashtags = random.sample(HASHTAGS, num_hashtags)
     return " ".join(selected_hashtags)
 
+# Upload function from Code 2
 def upload_to_instagram(video_path):
     """Uploads the video to Instagram and deletes it after upload."""
     if not os.path.exists(video_path):
@@ -127,34 +113,32 @@ def upload_to_instagram(video_path):
     os.remove(video_path)
     print(f"🗑 Deleted: {video_path}")
 
+# Queue processing with delay from Code 2
 def process_queue():
     """Processes videos from the queue one by one with a random delay (40-70 mins)."""
     while not video_queue.empty():
         try:
             video_url = video_queue.get()
-            print(f"🎬 Processing: {video_url}")
-            video_path = download_instagram_video(video_url)
-            print(f"✅ Downloaded: {video_path}")
+            print(f"📥 Processing video from queue: {video_url}")
+            video_path = download_video(video_url)
             upload_to_instagram(video_path)
-            print(f"✅ Uploaded Successfully: {video_path}")
+            print(f"✔️ Completed: {video_path}")
             
-            # Random delay between 40 and 70 minutes (converted to seconds)
+            # Random delay between 40 and 70 minutes (converted to seconds), as in Code 2
             delay_minutes = random.uniform(40, 70)
             delay_seconds = delay_minutes * 60
             print(f"⏳ Waiting {delay_minutes:.2f} minutes ({delay_seconds:.0f} seconds) before next upload...")
             time.sleep(delay_seconds)
         except Exception as e:
-            print("❌ ERROR:", e)
+            print(f"❌ Error processing {video_url}: {e}")
             traceback.print_exc()
+            continue
 
-# Login Endpoint
+# Login endpoint from Code 2
 @app.post("/login/")
-async def login(request: Request, login_request: LoginRequest):
+async def login(login_request: LoginRequest):
+    """Log in to Instagram."""
     try:
-        # Log the incoming request payload
-        body = await request.json()
-        print("Received payload:", body)
-        
         load_instagram_session(login_request.username, login_request.password, login_request.verification_code)
         return {"status": "success", "message": "Logged in successfully!"}
     except HTTPException as e:
@@ -164,28 +148,39 @@ async def login(request: Request, login_request: LoginRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-# Video Processing Endpoint
+# Video processing endpoint adapted from both codes
 @app.post("/process_videos/")
-def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
+async def process_videos(request: VideoRequest, background_tasks: BackgroundTasks):
+    """Queue video links for download and upload."""
     try:
         if not os.path.exists(TEMP_FOLDER):
             os.makedirs(TEMP_FOLDER)
+            print(f"📁 Created temp folder: {TEMP_FOLDER}")
         
-        # Ensure we're logged in
-        if not cl.user_id:  # Check if client is authenticated
+        # Ensure Instagram client is logged in
+        if not cl.user_id:
             raise HTTPException(status_code=401, detail="Not logged in. Please log in first.")
         
-        for link in request.instagram_links:
+        for link in request.video_links:
             video_queue.put(link)
+            print(f"➕ Added to queue: {link}")
         
         background_tasks.add_task(process_queue)
-        return {"status": "success", "message": f"{len(request.instagram_links)} videos queued for upload."}
+        return {
+            "status": "success",
+            "message": f"{len(request.video_links)} videos queued for download and upload."
+        }
     except Exception as e:
-        print("❌ ERROR:", e)
+        print(f"❌ Error in process_videos: {e}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Server Error: {e}")
 
-# Health Check Endpoint
+# Health check endpoint from both codes
 @app.get("/")
 def health_check():
+    """Check if the API is running."""
     return {"status": "healthy", "message": "API is running!"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
